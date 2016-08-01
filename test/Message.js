@@ -11,7 +11,7 @@ const helloWorldBuffer = new Buffer("hello world")
 
 describe('Message', () => {
 
-  describe('simple wrap', () => {
+  describe('unsigned, unencrypted message', () => {
 
     let message, envelope
 
@@ -30,7 +30,7 @@ describe('Message', () => {
     })
 
     it('should have correct no signatue', () => {
-      expect(message.signature).to.be.an('undefined')
+      expect(message.signature).to.be.undefned
     })
 
     it('should have correct payload', () => {
@@ -43,7 +43,7 @@ describe('Message', () => {
 
   })
 
-  describe('cleartext sign recover', () => {
+  describe('signed, unencrypted message', () => {
 
     let keypair, message, envelope
 
@@ -65,6 +65,11 @@ describe('Message', () => {
       expect(message.flags).to.equal(util.SIGNATURE_FLAG)
     })
 
+     it('should have signatue', () => {
+      expect(message.signature).to.not.be.undefned
+    })
+
+
     it('should have correct payload', () => {
       expect(message.payload).to.deep.equal(helloWorldBuffer)
     })
@@ -80,7 +85,7 @@ describe('Message', () => {
     
   })
 
-  describe('anonymous encrypt decrypt', () => {
+  describe('unsigned, encrypted message', () => {
 
     let keypair, message, envelope, openedMessage
 
@@ -108,6 +113,43 @@ describe('Message', () => {
 
     it('should open message', () => {
       openedMessage = envelope.open(keypair)
+    })
+
+    it('should have correct payload', () => {
+      expect(openedMessage.payload).to.deep.equal(helloWorldBuffer)
+    })
+
+  })
+
+  describe('signed, encrypted message', () => {
+
+    let keypairFrom, keypairTo, message, envelope, openedMessage
+
+    it('should generate keys', () => {
+      keypairFrom = Keypair.generate()
+      keypairTo = Keypair.generate()
+    })
+
+    it('should create a new message', () => {
+      message = new Message(helloWorldBuffer)
+    })
+
+    it('should wrap message', () => {
+      return message.wrap(util.POW, { to: keypairTo.publicKey, from: keypairFrom }).then((_envelope) => {
+        envelope = _envelope
+      }).should.eventually.be.fulfilled
+    })
+
+    it('should have correct signature flag', () => {
+      expect(message.flags).to.equal(util.SIGNATURE_FLAG)
+    })
+
+    it('should have signature', () => {
+      expect(message.signature).to.not.be.undefined
+    })
+
+    it('should open message', () => {
+      openedMessage = envelope.open(keypairTo)
     })
 
     it('should have correct payload', () => {
